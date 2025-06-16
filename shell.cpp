@@ -18,16 +18,41 @@ void sigint_handler(int signo) {
 void print_prompt() {
     std::cout << "mysh> " << std::flush;
 }
+std::string expand_variables(const std::string& input);  // <-- Forward declaration
 
 std::vector<std::string> parse_command(const std::string& input) {
     std::istringstream iss(input);
     std::vector<std::string> tokens;
     std::string token;
     while (iss >> token) {
+         token = expand_variables(token);  
         tokens.push_back(token);
     }
     return tokens;
 }
+
+
+std::string expand_variables(const std::string& input) {
+    std::string result;
+    size_t i = 0;
+    while (i < input.size()) {
+        if (input[i] == '$') {
+            i++;
+            std::string var;
+            while (i < input.size() && (isalnum(input[i]) || input[i] == '_')) {
+                var += input[i++];
+            }
+            const char* val = getenv(var.c_str());
+            if (val) {
+                result += val;
+            }
+        } else {
+            result += input[i++];
+        }
+    }
+    return result;
+}
+
 
 std::vector<std::vector<std::string>> parse_pipeline(const std::string& input) {
     std::vector<std::vector<std::string>> commands;
@@ -39,7 +64,9 @@ std::vector<std::vector<std::string>> parse_pipeline(const std::string& input) {
         std::string token;
         std::vector<std::string> parts;
         while (cmdstream >> token) {
-            parts.push_back(token);
+            parts.push_back(expand_variables(token));  // <-- here too
+
+           
         }
         if (!parts.empty()) {
             commands.push_back(parts);
