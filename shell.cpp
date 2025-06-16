@@ -9,6 +9,7 @@
 #include <csignal> // for signal handling
 #include <readline/readline.h>    // <<< added
 #include <readline/history.h>     // <<< added
+#include <dirent.h>    // for listing directory contents
 
 void sigint_handler(int signo) {
     std::cout << "\nmysh> " << std::flush;
@@ -47,10 +48,46 @@ std::vector<std::vector<std::string>> parse_pipeline(const std::string& input) {
     return commands;
 }
 
+char** my_completion(const char* text, int start, int end);
+char* command_generator(const char* text, int state);
 
+        char* command_generator(const char* text, int state) {
+    static DIR* dir;
+    static struct dirent* ent;
+    static std::string prefix;
+    
+    if (state == 0) {
+        dir = opendir(".");
+        prefix = text;
+    }
+
+    while ((ent = readdir(dir)) != nullptr) {
+        if (strncmp(ent->d_name, prefix.c_str(), prefix.size()) == 0) {
+            return strdup(ent->d_name);
+        }
+    }
+
+    closedir(dir);
+    return nullptr;
+}
+
+char** my_completion(const char* text, int start, int end) {
+    rl_attempted_completion_over = 1;
+    return rl_completion_matches(text, command_generator);
+}
 int main() {
-    signal(SIGINT, sigint_handler);   
+    signal(SIGINT, sigint_handler);
+    
+    rl_attempted_completion_function = my_completion;
+
     while (true) {
+
+
+
+
+
+
+
       char* raw_input = readline("mysh> ");      // <<< added
 if (!raw_input) break;                     // <<< added (Ctrl+D / EOF)
 std::string input(raw_input);              // <<< added
@@ -186,6 +223,23 @@ if (!input.empty()) add_history(input.c_str());  // <<< added
             std::vector<char*> c_args;
             for (auto& arg : args) c_args.push_back(&arg[0]);
             c_args.push_back(nullptr);
+
+
+            // Shell Script Handling (e.g. ./myscript.sh)
+if (args[0].rfind("./", 0) == 0 || args[0].rfind("/", 0) == 0) {
+    if (access(args[0].c_str(), F_OK) == 0) {
+        std::vector<char*> script_args;
+        script_args.push_back(const_cast<char*>("bash"));
+        for (auto& arg : args) {
+            script_args.push_back(const_cast<char*>(arg.c_str()));
+        }
+        script_args.push_back(nullptr);
+
+        execvp("bash", script_args.data());
+        perror("script exec");
+        exit(1);
+    }
+}
 
             execvp(c_args[0], c_args.data());
             perror("execvp");
