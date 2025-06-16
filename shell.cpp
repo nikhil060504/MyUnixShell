@@ -7,8 +7,8 @@
 #include <fcntl.h>    // open
 #include <cstring>    // strerror
 #include <csignal> // for signal handling
-#include <readline/readline.h>
-#include <readline/history.h>
+#include <readline/readline.h>    // <<< added
+#include <readline/history.h>     // <<< added
 
 void sigint_handler(int signo) {
     std::cout << "\nmysh> " << std::flush;
@@ -51,14 +51,11 @@ std::vector<std::vector<std::string>> parse_pipeline(const std::string& input) {
 int main() {
     signal(SIGINT, sigint_handler);   
     while (true) {
-      char* raw_input = readline("mysh> ");
-if (!raw_input) break;
-
-std::string input(raw_input);
-free(raw_input);
-
-if (!input.empty()) add_history(input.c_str());
-
+      char* raw_input = readline("mysh> ");      // <<< added
+if (!raw_input) break;                     // <<< added (Ctrl+D / EOF)
+std::string input(raw_input);              // <<< added
+free(raw_input);                           // <<< added
+if (!input.empty()) add_history(input.c_str());  // <<< added
 
         if (input.empty()) continue;
 
